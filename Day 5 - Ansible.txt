@@ -1,0 +1,373 @@
+
+
+
+Before going to host scope variables,
+lets discuss play scope  variables
+
+Playscope variables are definined within the playbook and they can effect only in one single play.
+
+Ex:
+
+$ vim playbook7.yml
+
+---
+- name: Using play scope variable
+  hosts: all
+  vars:
+   - a: tomcat8
+   - b: present
+   - c: no
+  tasks:
+   - name: Install tomcat8
+     apt:
+      name: "{{a}}"
+      state: "{{b}}"
+      update_cache: "{{c}}"
+...
+
+$ ansible-playbook  playbook7.yml  -b
+( It will install tomcat8 )
+
+We can run by using extra vars from command line
+$ ansible-playbook  playbook7.yml    --extra-vars "a=tree b=present c=no"  -b
+
+
+
+
+
+The above command will install tree because global scope variables have higher priority
+
+Notes:
+Playscope variables
+These variables are definied at level of individual plays and they can effect only one play.
+
+Ex:
+
+---
+- name: Using play scope variable
+  hosts: all
+  vars:
+   - a: tomcat8
+   - b: present
+   - c: no
+  tasks:
+   - name: Install tomcat8
+     apt:
+      name: "{{a}}"
+      state: "{{b}}"
+      update_cache: "{{c}}"
+...
+
+Note: The above playbook works like a template, who's default behaviour is to install tomcat8
+But, we can by pass that behaviour and make it work in some other software by passing the variables as extra vars
+
+
+$ ansible-playbook  playbook7.yml  -b  --extra-vars "a=tree b=present c=no"  -b
+
+
+
+
+
+The above command will install tree because global scope variables have higher priority
+
+Notes:
+Playscope variables
+These variables are definied at level of individual plays and they can effect only one play.
+
+Ex:
+
+---
+- name: Using play scope variable
+  hosts: all
+  vars:
+   - a: tomcat8
+   - b: present
+   - c: no
+  tasks:
+   - name: Install tomcat8
+     apt:
+      name: "{{a}}"
+      state: "{{b}}"
+      update_cache: "{{c}}"
+...
+
+Note: The above playbook works like a template, who's default behaviour is to install tomcat8
+But, we can by pass that behaviour and make it work in some other software by passing the variables as extra vars
+
+++++++++++++++++++++
+
+
+++++++++++++++++++++++++++++++++++++++
+Today we will discuss about host scope variables
+Lets create one more managed node.
+So, we will have 1 controller 4 nodes.
+In step 6  --  Add rule -- All Traffic -- Anywhere
+
+Establish password less ssh connection
+$ sudo passwd ubuntu
+( lets give the password as ubuntu only )
+
+$ sudo vim /etc/ssh/sshd_config
+
+change 
+PasswordAuthentication yes
+Save and QUIT
+
+$ sudo service ssh restart
+$ exit
+
+++++++++++++++++
+Now,  Connect to controller
+Now , We need to generate ssh connections
+$ ssh-keygen
+
+Now copy the key to managed nodes
+
+$ ssh-copy-id ubuntu@172.31.47.14  ( private Ip of server4 )
+$ ssh-copy-id ubuntu@172.31.35.56 
+
+
++++++++++++
+Now, we need to add the information of managed nodes in the inventory file.
+Location of inventory file   /etc/ansible
+
+$ cd /etc/ansible
+$ ls
+$ sudo vim hosts
+insert the private ip addresss of 4th  server
+save and quit
+
+$ ansible all  -a  'ls  -la'    ( you will get the list of the files in all managed nodes )
+
+
+++++++++++++++++++
+We can do grouping using  [groupname]
+
+Ex:
+
+To do grouping
+
+$ sudo vim hosts
+
+[webserver]
+172.31.11.96
+172.31.6.207
+[appserver]
+172.31.12.138
+[dbserver]
+172.31.31.161
+
++++++++++++++++++++
+
+$ ansible appserver  -a 'free'    ( It runs on one machine 172.31.12.138)
+
+$ ansible webserver  -a 'free'   ( It runs on two machines )
+
+$ ansible all  -a 'free'
+
+Grouping in inventory file
+----------------------------
+$ sudo  vim  /etc/ansible/hosts
+
+[webserver]
+172.31.11.96
+172.31.6.207
+[appserver]
+172.31.12.138
+[dbserver]
+172.31.31.161
+[india:children]
+webserver
+dbserver
+
+++++++++++++++++++++++++++++++++++++++++
+
+
+
+Host scope variables
+--------------------
+These variables are classified into 2 types
+1) Variables to work on group of hosts
+2) Variables to work on single hosts
+
+ Variables to work on group of hosts
+---------------------------------------
+These variables are designed to work on group of hosts.
+They are definined in a folder called  group_vars
+This group_vars folder should be presnent in the same folder where all the playbooks are present.
+In this group_vars folder, we should create a file who's name is same as group_name in Inventory file.
+In this file we create variables.
+
+
+Varible which works on group of hosts
+
+$ cd  ( enter)
+$ cd playbooks
+$ ls
+	
+Varibles which work in group of hosts are divided into two types
+1) Variables which work in group of machines
+2) Variables which work on one machine
+
+ Variables which work in group of machines
+------------------------------------------------
+playbooks$ mkdir group_vars
+
+Note:  group_vars  folder should be present in the same location of playbook files.
+
+$ cd group_vars
+$  vim webserver
+
+
+a: Prakash
+b: logiclabs
+c: /home/Prakash
+d: 67809
+e: /bin/bash
+
+Save and Quit
+
+$ cd ..
+playbooks$ vim playbook8.yml
+
+---
+- name: Using host scope variables
+  hosts: webserver
+  tasks:
+   - name: User creation
+     user:
+      name: "{{a}}"
+      password: "{{b}}"
+      home: "{{c}}"
+      uid: "{{d}}"
+      shell: "{{e}}"
+...
+
+save and quit
+
+TO run the playbook
+$ ansible-playbook playbook8.yml  -b  ( It runs on two machines)
+
+
+
+++++++++++++++++++++++++++++
+
+Lets add few more variables
+
+$ cd group_vars
+$ vim webserver
+
+a: Prakash
+b: durgasoft
+c: /home/Prakash
+d: 67809
+e: /bin/bash
+f: tree
+g: present
+h: no
+
+save and quit
+
+$ cd ..
+$ vim playbook9.yml
+
+---
+- name: Using host scope variables
+  hosts: webserver
+  tasks:
+   - name: Install software
+     apt:
+      name: "{{f}}"
+      state: "{{g}}"
+      update_cache: "{{h}}"
+...
+
+$ ansible-playbook  playbook9.yml  -b
+
+
+
++++++++++++++++++++++++++
+ Variables to work on single hosts
+
+Variables to work on single hosts
+These variables  are designed on single machine.
+Thet are created in folder called host_wars
+This host_wars folder should be created in the same location of where the playbooks are present.
+
+
+playbooks$ mkdir host_vars
+$ cd host_vars
+$ vim 172.31.35.56        ( 172.31.35.56  private Ip of server4 )
+
+a: firewalld
+b: present
+c: yes
+
+save and quit
+$ cd ..
+$ vim playbook10.yml
+
+---
+- name: Use host scope variables
+  hosts: 172.31.35.56
+  tasks:
+   - name: Install firewall
+     apt:
+      name: "{{a}}"
+      state: "{{b}}"
+      update_cache: "{{c}}"
+...
+
+save and quit
+
+$ ansible-playbook  playbook10.yml  -b
+
+
++++++++++++++++++++++++++++++++++++++++++++
+
+Implementing loops
+
+Notes: Modules in ansible can be executed multiple times using loops.
+
+
+$ vim playbook11.yml
+
+- name: Install software packages
+  hosts: webserver
+  tasks:
+   - name: Install software
+     apt:
+      name: "{{item}}"
+      state: present
+      update_cache: no
+     with_items:
+      - tree
+      - git
+      - default-jdk
+      - apache2
+...
+
+$ ansible-playbook  playbook11.yml  -b
+
+
+Ex: Playbook to install diffrent s/w packages
+
+$ vim playbook11.yml
+
+- name: Install software packages
+  hosts: webserver
+  tasks:
+   - name: Install software
+     apt:
+      name: "{{item}}"
+      state: present
+      update_cache: no
+     with_items:
+      - tree
+      - git
+      - default-jdk
+      - apache2
+...
+
+++++++++++++++++++++++++
+
